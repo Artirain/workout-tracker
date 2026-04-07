@@ -7,8 +7,53 @@
 /* ── Layout ── */
 
 .app-header {
+  position: relative;
   text-align: center;
   padding: var(--space-6) var(--space-4) var(--space-2);
+}
+
+/* ── Theme Toggle ── */
+
+.theme-toggle {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+.theme-toggle:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+/* Show/hide icons based on theme */
+[data-theme="light"] .theme-toggle__dark { display: none; }
+[data-theme="light"] .theme-toggle__light { display: block; }
+:root:not([data-theme="light"]) .theme-toggle__dark { display: block; }
+:root:not([data-theme="light"]) .theme-toggle__light { display: none; }
+
+/* ── Light theme overrides ── */
+
+[data-theme="light"] .bottom-nav {
+  background: rgba(255, 255, 255, 0.8);
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] body {
+  background: var(--color-bg-primary);
+}
+
+[data-theme="light"] body::before {
+  opacity: 0;
 }
 
 .app-header h1 {
@@ -1676,6 +1721,77 @@ main {
 }
 
 
+/* =====================
+   COMPARISON CARD
+   ===================== */
+
+.comparison-card {
+  padding: var(--space-3);
+  background: var(--color-accent-subtle);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+.comparison-card__header {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  margin-bottom: var(--space-1);
+}
+.comparison-card__sets {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.comparison-card__1rm {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+  margin-top: var(--space-1);
+}
+
+/* =====================
+   TEMPLATE GRID
+   ===================== */
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.template-btn {
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+  font-family: var(--font-family);
+}
+.template-btn:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+.template-btn--today {
+  border-color: rgba(59, 130, 246, 0.3);
+  background: var(--color-accent-subtle);
+}
+.template-btn__name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  display: block;
+}
+.template-btn__day {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+  display: block;
+}
+
+
 /* ── 12. Reduced motion — disable all premium animations ── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1698,4 +1814,43 @@ main {
   .btn::after {
     display: none;
   }
+}
+
+/* ── Achievements ── */
+
+#achievements-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-2);
+}
+.achievement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-size: var(--font-size-xs);
+  transition: all var(--transition-fast);
+}
+.achievement--earned {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: var(--color-success-subtle);
+}
+.achievement--earned .achievement__icon {
+  font-size: var(--font-size-2xl);
+}
+.achievement--locked {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+.achievement__icon {
+  font-size: var(--font-size-xl);
+}
+.achievement__name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
 }

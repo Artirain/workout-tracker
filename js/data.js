@@ -4,10 +4,50 @@
   const KEYS = {
     exercises: 'wt_exercises',
     workouts: 'wt_workouts',
-    water: 'wt_water'
+    water: 'wt_water',
+    templates: 'wt_templates',
+    bodyweight: 'wt_bodyweight'
   };
 
   const DEFAULT_EXERCISES = ['Жим лежа', 'Присед', 'Подтягивания', 'Бабочка'];
+
+  var DEFAULT_TEMPLATES = [
+    {
+      name: "День груди + спина",
+      day: "вторник",
+      exercises: ["Жим", "Подтягивания с весом", "Подтягивания широким хватом", "Бабочка", "Тяга верхнего блока", "Тяга нижнего блока"]
+    },
+    {
+      name: "День ног + плечи",
+      day: "четверг",
+      exercises: ["Присед ногами", "Разгибы ног", "Выпады", "Подтягивания на одной (L/R)"]
+    },
+    {
+      name: "Руки + плечи",
+      day: "суббота",
+      exercises: ["Бицепс", "Трицепс", "Жим стоя", "Предплечья"]
+    }
+  ];
+
+  var MUSCLE_GROUPS = {
+    "Жим": "Грудь",
+    "Бабочка": "Грудь",
+    "Бабочка задняя дельта": "Плечи",
+    "Подтягивания с весом": "Спина",
+    "Подтягивания широким хватом": "Спина",
+    "Подтягивания": "Спина",
+    "Подтягивания на одной (L/R)": "Спина",
+    "Тяга верхнего блока": "Спина",
+    "Тяга нижнего блока": "Спина",
+    "Присед ногами": "Ноги",
+    "Разгибы ног": "Ноги",
+    "Выпады": "Ноги",
+    "Горизонт": "Кор",
+    "Бицепс": "Руки",
+    "Трицепс": "Руки",
+    "Жим стоя": "Плечи",
+    "Предплечья": "Руки"
+  };
 
   function load(key) {
     try {
@@ -159,6 +199,110 @@
     return result;
   }
 
+  // ── Templates ──
+
+  function getTemplates() {
+    var list = load(KEYS.templates);
+    if (!list) {
+      save(KEYS.templates, DEFAULT_TEMPLATES);
+      return DEFAULT_TEMPLATES.slice();
+    }
+    return list;
+  }
+
+  function addTemplate(template) {
+    var list = getTemplates();
+    list.push(template);
+    save(KEYS.templates, list);
+  }
+
+  function removeTemplate(name) {
+    var list = getTemplates().filter(function (t) { return t.name !== name; });
+    save(KEYS.templates, list);
+  }
+
+  // ── Body Weight ──
+
+  function loadBodyWeight() {
+    return load(KEYS.bodyweight) || {};
+  }
+
+  function getBodyWeight(date) {
+    return loadBodyWeight()[date] || 0;
+  }
+
+  function setBodyWeight(date, weight) {
+    var data = loadBodyWeight();
+    data[date] = weight;
+    save(KEYS.bodyweight, data);
+  }
+
+  function getBodyWeightHistory(days) {
+    var data = loadBodyWeight();
+    var result = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = dateNDaysAgo(i);
+      var w = data[d] || 0;
+      if (w) result.push({ date: d, weight: w });
+    }
+    return result;
+  }
+
+  // ── Workout Notes ──
+
+  function addWorkoutNote(workoutId, note) {
+    var all = loadWorkouts();
+    var idx = all.findIndex(function (w) { return w.id === workoutId; });
+    if (idx === -1) return;
+    all[idx].notes = note;
+    save(KEYS.workouts, all);
+  }
+
+  // ── Muscle Groups ──
+
+  function getMuscleGroup(exerciseName) {
+    return MUSCLE_GROUPS[exerciseName] || "Другое";
+  }
+
+  function getMuscleGroupStats(days) {
+    var cutoff = dateNDaysAgo(days);
+    var workouts = loadWorkouts().filter(function (w) { return w.date >= cutoff; });
+    var stats = {};
+    workouts.forEach(function (w) {
+      (w.exercises || []).forEach(function (ex) {
+        var group = getMuscleGroup(ex.name);
+        var sets = (ex.sets || []).length;
+        stats[group] = (stats[group] || 0) + sets;
+      });
+    });
+    return stats;
+  }
+
+  // ── 1RM Calculator ──
+
+  function calculate1RM(weight, reps) {
+    if (reps >= 37 || weight <= 0) return 0;
+    return Math.round(weight * (36 / (37 - reps)) * 10) / 10;
+  }
+
+  function getPersonalRecords1RM() {
+    var records = {};
+    loadWorkouts().forEach(function (w) {
+      (w.exercises || []).forEach(function (ex) {
+        (ex.sets || []).forEach(function (s) {
+          var weight = Number(s.weight) || 0;
+          var reps = Number(s.reps) || 0;
+          if (weight <= 0 || reps <= 0 || reps >= 37) return;
+          var est = calculate1RM(weight, reps);
+          if (!records[ex.name] || est > records[ex.name]) {
+            records[ex.name] = est;
+          }
+        });
+      });
+    });
+    return records;
+  }
+
   // ── Progress / Stats ──
 
   /**
@@ -286,6 +430,10 @@
       var localExercises = getExercises();
       var remoteExercises = remote.exercises || [];
       save(KEYS.exercises, mergeExercises(localExercises, remoteExercises));
+
+      if (remote.templates && !load(KEYS.templates)) {
+        save(KEYS.templates, remote.templates);
+      }
     } catch (e) {
       // JSON file unavailable — use localStorage only
     }
@@ -311,6 +459,23 @@
     getWaterHistory: getWaterHistory,
 
     getExerciseProgress: getExerciseProgress,
-    getPersonalRecords: getPersonalRecords
+    getPersonalRecords: getPersonalRecords,
+
+    getTemplates: getTemplates,
+    addTemplate: addTemplate,
+    removeTemplate: removeTemplate,
+
+    getBodyWeight: getBodyWeight,
+    setBodyWeight: setBodyWeight,
+    getBodyWeightHistory: getBodyWeightHistory,
+
+    addWorkoutNote: addWorkoutNote,
+
+    MUSCLE_GROUPS: MUSCLE_GROUPS,
+    getMuscleGroup: getMuscleGroup,
+    getMuscleGroupStats: getMuscleGroupStats,
+
+    calculate1RM: calculate1RM,
+    getPersonalRecords1RM: getPersonalRecords1RM
   };
 })();

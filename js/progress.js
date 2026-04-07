@@ -2,6 +2,7 @@
   'use strict';
 
   var chartMaxWeight = null;
+  var chartMuscleGroups = null;
   var initialized = false;
 
   var CHART_COLORS = {
@@ -240,6 +241,7 @@
 
   function destroyChart() {
     if (chartMaxWeight) { chartMaxWeight.destroy(); chartMaxWeight = null; }
+    if (chartMuscleGroups) { chartMuscleGroups.destroy(); chartMuscleGroups = null; }
   }
 
   function renderChart(sessions) {
@@ -287,6 +289,7 @@
     if (!container) return;
 
     var records = WorkoutData.getPersonalRecords();
+    var records1RM = WorkoutData.getPersonalRecords1RM();
     var names = Object.keys(records);
 
     if (!names.length) {
@@ -297,6 +300,12 @@
 
     var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-2);">';
     names.sort().forEach(function (name) {
+      var est1RM = records1RM[name];
+      var rmLine = '';
+      if (est1RM && est1RM > records[name]) {
+        rmLine = '<div style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);margin-top:2px;">' +
+          '1RM \u2248 ' + formatNum(est1RM) + ' кг</div>';
+      }
       html += '<div style="background:var(--color-surface);border-radius:var(--radius-md);padding:var(--space-3);text-align:center;">' +
         '<div style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);margin-bottom:var(--space-1);">' +
           name +
@@ -304,9 +313,180 @@
         '<div style="font-size:var(--font-size-xl);font-weight:var(--font-weight-bold);color:var(--color-success);">' +
           records[name] + '<span style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);"> кг</span>' +
         '</div>' +
+        rmLine +
       '</div>';
     });
     html += '</div>';
+    container.innerHTML = html;
+  }
+
+  var MUSCLE_GROUP_COLORS = {
+    '\u0413\u0440\u0443\u0434\u044C': '#3b82f6',
+    '\u0421\u043F\u0438\u043D\u0430': '#22c55e',
+    '\u041D\u043E\u0433\u0438': '#f59e0b',
+    '\u041F\u043B\u0435\u0447\u0438': '#8b5cf6',
+    '\u0420\u0443\u043A\u0438': '#ef4444',
+    '\u041A\u043E\u0440': '#06b6d4',
+    '\u0414\u0440\u0443\u0433\u043E\u0435': '#64748b'
+  };
+
+  function renderMuscleGroupChart() {
+    if (chartMuscleGroups) { chartMuscleGroups.destroy(); chartMuscleGroups = null; }
+
+    var ctx = document.getElementById('chart-muscle-groups');
+    if (!ctx || typeof Chart === 'undefined') return;
+
+    var stats = WorkoutData.getMuscleGroupStats(30);
+    var groups = Object.keys(stats);
+    if (!groups.length) return;
+
+    var labels = [];
+    var data = [];
+    var colors = [];
+    groups.forEach(function (g) {
+      labels.push(g);
+      data.push(stats[g]);
+      colors.push(MUSCLE_GROUP_COLORS[g] || '#64748b');
+    });
+
+    chartMuscleGroups = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: colors,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        animation: { duration: 400 },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              color: CHART_COLORS.textTertiary,
+              padding: 12,
+              generateLabels: function (chart) {
+                var ds = chart.data.datasets[0];
+                return chart.data.labels.map(function (label, i) {
+                  return {
+                    text: label + ' (' + ds.data[i] + ')',
+                    fillStyle: ds.backgroundColor[i],
+                    hidden: false,
+                    index: i
+                  };
+                });
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#1a1a26',
+            titleColor: '#f1f5f9',
+            bodyColor: '#94a3b8',
+            borderColor: 'rgba(255,255,255,0.08)',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              label: function (context) {
+                var total = context.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                var pct = total > 0 ? Math.round(context.raw / total * 100) : 0;
+                return context.label + ': ' + context.raw + ' подходов (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderAchievements() {
+    var container = document.getElementById('achievements-list');
+    if (!container) return;
+
+    var workouts = WorkoutData.getWorkouts();
+    var records = WorkoutData.getPersonalRecords();
+    var waterHistory = WorkoutData.getWaterHistory(365);
+
+    // Check max reps for Подтягивания
+    var maxPullUpReps = 0;
+    workouts.forEach(function (w) {
+      (w.exercises || []).forEach(function (ex) {
+        if (ex.name.indexOf('\u041F\u043E\u0434\u0442\u044F\u0433\u0438\u0432\u0430\u043D\u0438\u044F') !== -1) {
+          (ex.sets || []).forEach(function (s) {
+            var reps = Number(s.reps) || 0;
+            if (reps > maxPullUpReps) maxPullUpReps = reps;
+          });
+        }
+      });
+    });
+
+    // Check if bench press improved (first vs last session)
+    var benchImproved = false;
+    var benchSessions = [];
+    workouts.slice().sort(function (a, b) { return a.date.localeCompare(b.date); }).forEach(function (w) {
+      (w.exercises || []).forEach(function (ex) {
+        if (ex.name === '\u0416\u0438\u043C' || ex.name === '\u0416\u0438\u043C \u043B\u0435\u0436\u0430') {
+          var maxW = 0;
+          (ex.sets || []).forEach(function (s) {
+            var weight = Number(s.weight) || 0;
+            if (weight > maxW) maxW = weight;
+          });
+          if (maxW > 0) benchSessions.push(maxW);
+        }
+      });
+    });
+    if (benchSessions.length >= 2 && benchSessions[benchSessions.length - 1] > benchSessions[0]) {
+      benchImproved = true;
+    }
+
+    // Workouts in last 7 days
+    var now = new Date();
+    var weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    var weekAgoStr = weekAgo.toISOString().slice(0, 10);
+    var workoutsThisWeek = workouts.filter(function (w) { return w.date >= weekAgoStr; }).length;
+
+    // Water >= 2000
+    var hasWaterDay = waterHistory.some(function (d) { return d.amount >= 2000; });
+
+    // Max bench weight
+    var maxBench = 0;
+    ['\u0416\u0438\u043C', '\u0416\u0438\u043C \u043B\u0435\u0436\u0430'].forEach(function (name) {
+      if (records[name] && records[name] > maxBench) maxBench = records[name];
+    });
+
+    // Max squat weight
+    var maxSquat = 0;
+    ['\u041F\u0440\u0438\u0441\u0435\u0434', '\u041F\u0440\u0438\u0441\u0435\u0434 \u043D\u043E\u0433\u0430\u043C\u0438'].forEach(function (name) {
+      if (records[name] && records[name] > maxSquat) maxSquat = records[name];
+    });
+
+    var achievements = [
+      { icon: '\uD83C\uDFCB\uFE0F', name: '\u041F\u0435\u0440\u0432\u0430\u044F \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430', earned: workouts.length >= 1 },
+      { icon: '\uD83D\uDD25', name: '5 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A', earned: workouts.length >= 5 },
+      { icon: '\uD83D\uDCAA', name: '10 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A', earned: workouts.length >= 10 },
+      { icon: '\uD83D\uDCC8', name: '\u041D\u043E\u0432\u044B\u0439 \u0440\u0435\u043A\u043E\u0440\u0434 \u0432 \u0436\u0438\u043C\u0435', earned: benchImproved },
+      { icon: '\uD83E\uDDD7', name: '\u041F\u043E\u0434\u0442\u044F\u0433\u0438\u0432\u0430\u043D\u0438\u044F 15+', earned: maxPullUpReps >= 15 },
+      { icon: '\uD83E\uDDD7\u200D\u2642\uFE0F', name: '\u041F\u043E\u0434\u0442\u044F\u0433\u0438\u0432\u0430\u043D\u0438\u044F 20+', earned: maxPullUpReps >= 20 },
+      { icon: '\uD83D\uDCC5', name: '\u041D\u0435\u0434\u0435\u043B\u044F \u0431\u0435\u0437 \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u043E\u0432', earned: workoutsThisWeek >= 3 },
+      { icon: '\uD83D\uDCA7', name: '\u0412\u043E\u0434\u043D\u044B\u0439 \u0431\u0430\u043B\u0430\u043D\u0441', earned: hasWaterDay },
+      { icon: '\uD83C\uDFCB\uFE0F\u200D\u2642\uFE0F', name: '\u0416\u0438\u043C 70\u043A\u0433', earned: maxBench >= 70 },
+      { icon: '\uD83E\uDDB5', name: '\u041F\u0440\u0438\u0441\u0435\u0434 100\u043A\u0433+', earned: maxSquat >= 100 }
+    ];
+
+    var html = '';
+    achievements.forEach(function (a) {
+      var cls = a.earned ? 'achievement achievement--earned' : 'achievement achievement--locked';
+      html += '<div class="' + cls + '">' +
+        '<span class="achievement__icon">' + a.icon + '</span>' +
+        '<span class="achievement__name">' + a.name + '</span>' +
+      '</div>';
+    });
     container.innerHTML = html;
   }
 
@@ -366,6 +546,8 @@
     populateExerciseSelector();
     ensureRecordsSection();
     renderPersonalRecords();
+    renderMuscleGroupChart();
+    renderAchievements();
 
     if (!initialized) {
       bindEvents();

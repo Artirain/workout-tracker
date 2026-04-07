@@ -181,10 +181,6 @@
             '\uD83C\uDFCB\uFE0F ' + formatDate(w.date) + '</span>' +
         '</div>' +
         exercisesHtml +
-        '<div class="card__footer" style="justify-content:space-between;font-weight:600;">' +
-          '<span>\u041E\u0431\u0449\u0438\u0439 \u043E\u0431\u044A\u0451\u043C</span>' +
-          '<span>' + Math.round(totalVol).toLocaleString('ru-RU') + ' \u043A\u0433</span>' +
-        '</div>' +
         (water > 0
           ? '<div class="card__footer" style="justify-content:space-between;font-weight:600;">' +
               '<span>\uD83D\uDCA7 \u0412\u043E\u0434\u0430</span>' +
@@ -222,7 +218,6 @@
         return ex.name;
       }).join(', ');
 
-      var totalVol = calcWorkoutVolume(w);
       var water = WorkoutData.getWaterForDate(w.date);
       var waterHtml = water > 0
         ? '<div style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);margin-top:4px;">' +
@@ -233,8 +228,6 @@
         'style="margin-bottom:var(--space-2);list-style:none;cursor:pointer;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">' +
           '<span class="badge badge--accent">' + formatDate(w.date) + '</span>' +
-          '<span style="color:var(--color-text-tertiary);font-size:var(--font-size-xs);">' +
-            Math.round(totalVol).toLocaleString('ru-RU') + ' \u043A\u0433</span>' +
         '</div>' +
         '<div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);line-height:1.6;' +
           'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + exerciseNames + '</div>' +
@@ -267,6 +260,40 @@
     }
     renderStats();
     renderRecentWorkouts();
+    initBodyWeight();
+  }
+
+  function initBodyWeight() {
+    var display = document.getElementById('body-weight-display');
+    var input = document.getElementById('body-weight-input');
+    var saveBtn = document.getElementById('body-weight-save');
+    if (!display || !input || !saveBtn || !WorkoutData.getBodyWeight) return;
+
+    var today = todayStr();
+    var current = WorkoutData.getBodyWeight(today);
+    if (current > 0) {
+      display.textContent = current + ' кг';
+      input.value = current;
+    }
+
+    // Show last known weight if today is empty
+    if (!current) {
+      var history = WorkoutData.getBodyWeightHistory(90);
+      if (history.length > 0) {
+        var last = history[history.length - 1];
+        display.textContent = last.weight + ' кг';
+        display.style.opacity = '0.5';
+      }
+    }
+
+    saveBtn.addEventListener('click', function () {
+      var val = parseFloat(input.value);
+      if (!val || val < 20 || val > 300) return;
+      WorkoutData.setBodyWeight(today, val);
+      display.textContent = val + ' кг';
+      display.style.opacity = '1';
+      input.value = val;
+    });
   }
 
   window.Dashboard = {

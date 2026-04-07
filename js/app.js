@@ -63,6 +63,7 @@
       } else {
         hideCustomExerciseInput();
       }
+      showLastWorkoutComparison(select.value);
     });
   }
 
@@ -324,17 +325,25 @@
       return;
     }
 
-    WorkoutData.addWorkout({
+    var notesEl = $('#workout-notes');
+    var notes = notesEl ? notesEl.value.trim() : '';
+
+    var workoutEntry = {
       exercises: sessionExercises.map(function (ex) {
         return { name: ex.name, sets: ex.sets.slice() };
       })
-    });
+    };
+    if (notes) workoutEntry.notes = notes;
+
+    WorkoutData.addWorkout(workoutEntry);
 
     sessionExercises = [];
     renderSessionList();
     resetSetsForm();
     $('#exercise-select').value = '';
+    if (notesEl) notesEl.value = '';
     hideCustomExerciseInput();
+    showLastWorkoutComparison('');
 
     showToast('Тренировка сохранена!', 'success');
 
@@ -379,6 +388,141 @@
     return div.innerHTML;
   }
 
+  // ── Last Workout Comparison ──
+
+  function showLastWorkoutComparison(exerciseName) {
+    var card = $('#last-workout-comparison');
+    if (!card) return;
+
+    if (!exerciseName || exerciseName === '__add_new__') {
+      card.style.display = 'none';
+      return;
+    }
+
+    var workouts = WorkoutData.getWorkouts();
+    var found = null;
+    var foundSets = null;
+
+    for (var i = 0; i < workouts.length; i++) {
+      var w = workouts[i];
+      var exercises = w.exercises || [];
+      for (var j = 0; j < exercises.length; j++) {
+        if (exercises[j].name === exerciseName) {
+          found = w;
+          foundSets = exercises[j].sets || [];
+          break;
+        }
+      }
+      if (found) break;
+    }
+
+    if (!found || foundSets.length === 0) {
+      card.style.display = 'none';
+      return;
+    }
+
+    var dateParts = found.date.split('-');
+    var dateLabel = dateParts[2] + '.' + dateParts[1];
+
+    var isBodyweight = foundSets.every(function (s) { return !s.weight || s.weight === 0; });
+
+    var setsText;
+    if (isBodyweight) {
+      setsText = foundSets.map(function (s) { return s.reps; }).join(', ');
+    } else {
+      setsText = foundSets.map(function (s) {
+        return s.weight + '\u00D7' + s.reps;
+      }).join(', ');
+    }
+
+    var best1rm = 0;
+    if (!isBodyweight) {
+      foundSets.forEach(function (s) {
+        var w = Number(s.weight) || 0;
+        var r = Number(s.reps) || 0;
+        if (w > 0 && r > 0) {
+          var rm = WorkoutData.calculate1RM(w, r);
+          if (rm > best1rm) best1rm = rm;
+        }
+      });
+    }
+
+    card.querySelector('.comparison-card__header').textContent = '\u041F\u0440\u043E\u0448\u043B\u044B\u0439 \u0440\u0430\u0437: ' + dateLabel;
+    card.querySelector('.comparison-card__sets').textContent = setsText;
+
+    var rmEl = card.querySelector('.comparison-card__1rm');
+    if (best1rm > 0) {
+      rmEl.textContent = '\u0420\u0430\u0441\u0447. 1RM: ' + best1rm + '\u043A\u0433';
+      rmEl.style.display = '';
+    } else {
+      rmEl.style.display = 'none';
+    }
+
+    card.style.display = '';
+  }
+
+  // ── Templates ──
+
+  function initTemplates() {
+    var container = $('#template-buttons');
+    if (!container) return;
+
+    var templates = [];
+    try {
+      templates = WorkoutData.getTemplates ? WorkoutData.getTemplates() : [];
+    } catch (e) {
+      templates = [];
+    }
+
+    if (!templates || templates.length === 0) return;
+
+    var dayNames = ['\u0432\u043E\u0441\u043A\u0440\u0435\u0441\u0435\u043D\u044C\u0435', '\u043F\u043E\u043D\u0435\u0434\u0435\u043B\u044C\u043D\u0438\u043A', '\u0432\u0442\u043E\u0440\u043D\u0438\u043A', '\u0441\u0440\u0435\u0434\u0430', '\u0447\u0435\u0442\u0432\u0435\u0440\u0433', '\u043F\u044F\u0442\u043D\u0438\u0446\u0430', '\u0441\u0443\u0431\u0431\u043E\u0442\u0430'];
+    var todayDay = dayNames[new Date().getDay()];
+
+    container.innerHTML = '';
+
+    templates.forEach(function (tpl) {
+      var btn = document.createElement('button');
+      btn.className = 'template-btn';
+      if (tpl.day && tpl.day.toLowerCase() === todayDay) {
+        btn.classList.add('template-btn--today');
+      }
+      btn.innerHTML =
+        '<span class="template-btn__name">' + escapeHtml(tpl.name) + '</span>' +
+        '<span class="template-btn__day">' + escapeHtml(tpl.day || '') + '</span>';
+
+      btn.addEventListener('click', function () {
+        applyTemplate(tpl);
+      });
+
+      container.appendChild(btn);
+    });
+  }
+
+  function applyTemplate(tpl) {
+    var exercises = tpl.exercises || [];
+    if (exercises.length === 0) return;
+
+    sessionExercises = [];
+
+    exercises.forEach(function (name) {
+      WorkoutData.addExercise(name);
+      sessionExercises.push({ name: name, sets: [] });
+    });
+
+    populateExerciseSelect();
+    renderSessionList();
+    resetSetsForm();
+
+    var select = $('#exercise-select');
+    if (select && exercises.length > 0) {
+      select.value = exercises[0];
+      showLastWorkoutComparison(exercises[0]);
+    }
+
+    showToast('\u0428\u0430\u0431\u043B\u043E\u043D \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D', 'success');
+  }
+
   // ── Init ──
 
   document.addEventListener('DOMContentLoaded', async function () {
@@ -388,6 +532,7 @@
     initSets();
     initWorkoutSession();
     initSessionListDelegation();
+    initTemplates();
     refreshDashboard();
   });
 })();
