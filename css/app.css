@@ -110,9 +110,26 @@ main {
 }
 
 .nav-tab .nav-icon {
-  font-size: 1.3rem;
   line-height: 1;
   transition: transform var(--transition-spring);
+}
+
+/* ── SVG Icons ── */
+
+.icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+
+.nav-tab .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.app-header .icon {
+  width: 28px;
+  height: 28px;
 }
 
 .nav-tab .nav-label {
@@ -1524,5 +1541,161 @@ main {
 
   .chart-container canvas {
     max-height: 400px;
+  }
+}
+
+
+/* ============================================
+   PREMIUM ANIMATIONS & MICRO-INTERACTIONS
+   ============================================ */
+
+/* ── 1. Enhanced card entrance with spring + scale ── */
+
+.tab-content.active > .card {
+  animation: cardEnter 0.4s ease-out both;
+}
+
+.tab-content.active > .card:nth-child(1) { animation-delay: 0ms; }
+.tab-content.active > .card:nth-child(2) { animation-delay: 60ms; }
+.tab-content.active > .card:nth-child(3) { animation-delay: 120ms; }
+.tab-content.active > .card:nth-child(4) { animation-delay: 180ms; }
+.tab-content.active > .card:nth-child(5) { animation-delay: 240ms; }
+
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+
+/* ── 2. Card press feedback — spring back ── */
+
+.card--interactive:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease-out;
+}
+
+
+/* ── 3. Summary value glow pulse ── */
+
+.summary-value {
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.summary-value:not(:empty) {
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+
+/* ── 4. Water ring fill — spring curve ── */
+
+.water-ring__fill {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+
+/* ── 5. Button ripple effect on tap ── */
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgba(255, 255, 255, 0.15),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.btn:active::after {
+  opacity: 1;
+  transition: opacity 0.05s;
+}
+
+
+/* ── 6. Bottom nav — sliding indicator transition ── */
+
+.nav-tab.active::before {
+  transition: left var(--transition-spring), transform var(--transition-spring);
+}
+
+
+/* ── 7. Badge pulse for new records ── */
+
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+}
+
+.badge--accent {
+  animation: badgePulse 2s ease-in-out infinite;
+}
+
+
+/* ── 8. Modal entrance — spring scale + fade ── */
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.9) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.workout-modal {
+  animation: modalEnter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+
+/* ── 9. Set row entrance — stagger from left ── */
+
+.set-row:nth-child(1) { animation-delay: 0ms; }
+.set-row:nth-child(2) { animation-delay: 40ms; }
+.set-row:nth-child(3) { animation-delay: 80ms; }
+.set-row:nth-child(4) { animation-delay: 120ms; }
+.set-row:nth-child(5) { animation-delay: 160ms; }
+
+
+/* ── 10. Progress stat — glow on positive change ── */
+
+.progress-stat__change.positive {
+  text-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+}
+
+
+/* ── 11. Header title — animated gradient shift ── */
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+.app-header h1 {
+  background-size: 200% auto;
+  animation: gradientShift 4s ease-in-out infinite;
+}
+
+
+/* ── 12. Reduced motion — disable all premium animations ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-content.active > .card,
+  .set-row,
+  .workout-modal,
+  .badge--accent,
+  .app-header h1 {
+    animation: none !important;
+  }
+
+  .summary-value:not(:empty) {
+    text-shadow: none;
+  }
+
+  .progress-stat__change.positive {
+    text-shadow: none;
+  }
+
+  .btn::after {
+    display: none;
   }
 }
