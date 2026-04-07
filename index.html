@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="description" content="Трекер тренировок — отслеживай прогресс и достигай целей">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Workout Tracker</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
+  <script src="js/history.js" defer></script>
+  <script src="js/progress.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>&#x1F3CB;&#xFE0F; Workout Tracker</h1>
+    <p class="tagline">Каждая тренировка — шаг к лучшей версии себя</p>
+  </header>
+
+  <main>
+    <!-- Dashboard -->
+    <section id="tab-dashboard" class="tab-content active">
+      <div class="card today-summary">
+        <h2>&#x1F4CA; Сводка за сегодня</h2>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-value" id="today-workouts">0</span>
+            <span class="summary-label">Тренировок</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-value" id="today-sets">0</span>
+            <span class="summary-label">Подходов</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-value" id="today-volume">0</span>
+            <span class="summary-label">Объём (кг)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card water-tracker">
+        <h2>&#x1F4A7; Вода</h2>
+        <div class="water-controls">
+          <span id="water-count">0</span> / 8 стаканов
+          <button class="btn btn-sm" id="water-add">+ Стакан</button>
+        </div>
+        <div class="water-progress" id="water-bar"></div>
+      </div>
+
+      <div class="card recent-workouts">
+        <h2>&#x1F525; Последние тренировки</h2>
+        <ul class="workout-list" id="recent-list">
+          <li class="empty-state">Пока нет тренировок. Начни прямо сейчас!</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Тренировка -->
+    <section id="tab-workout" class="tab-content">
+      <div class="card">
+        <h2>&#x1F4AA; Новая тренировка</h2>
+
+        <div class="form-group">
+          <label for="exercise-select">Упражнение</label>
+          <select id="exercise-select" class="input">
+            <option value="">Выбери упражнение...</option>
+            <optgroup label="Грудь">
+              <option value="bench-press">Жим лёжа</option>
+              <option value="incline-press">Жим на наклонной</option>
+              <option value="dumbbell-fly">Разводка гантелей</option>
+            </optgroup>
+            <optgroup label="Спина">
+              <option value="deadlift">Становая тяга</option>
+              <option value="pull-up">Подтягивания</option>
+              <option value="barbell-row">Тяга штанги в наклоне</option>
+            </optgroup>
+            <optgroup label="Ноги">
+              <option value="squat">Приседания</option>
+              <option value="leg-press">Жим ногами</option>
+              <option value="lunges">Выпады</option>
+            </optgroup>
+            <optgroup label="Плечи">
+              <option value="overhead-press">Жим стоя</option>
+              <option value="lateral-raise">Махи в стороны</option>
+            </optgroup>
+            <optgroup label="Руки">
+              <option value="bicep-curl">Сгибания на бицепс</option>
+              <option value="tricep-extension">Разгибания на трицепс</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div id="sets-container">
+          <div class="set-row">
+            <span class="set-number">1</span>
+            <input type="number" class="input input-sm" placeholder="Вес (кг)" min="0" step="0.5">
+            <span>&#xD7;</span>
+            <input type="number" class="input input-sm" placeholder="Повторы" min="1">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-outline" id="add-set">+ Подход</button>
+          <button class="btn btn-primary" id="save-workout">&#x2714; Сохранить</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- История -->
+    <section id="tab-history" class="tab-content">
+      <div class="card">
+        <h2>&#x1F4C5; История тренировок</h2>
+        <div class="history-filters">
+          <input type="date" class="input" id="history-date">
+          <select class="input" id="history-exercise-filter">
+            <option value="">Все упражнения</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="history-list">
+        <div class="card empty-state">
+          <p>&#x1F4AD; История пуста. Сделай первую тренировку!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Прогресс -->
+    <section id="tab-progress" class="tab-content">
+      <div class="card">
+        <h2>&#x1F4C8; Прогресс</h2>
+        <div class="form-group">
+          <label for="progress-exercise">Упражнение</label>
+          <select id="progress-exercise" class="input">
+            <option value="">Выбери упражнение...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card chart-container">
+        <h3>Максимальный вес</h3>
+        <canvas id="chart-max-weight"></canvas>
+      </div>
+
+      <div class="card chart-container">
+        <h3>Общий объём</h3>
+        <canvas id="chart-volume"></canvas>
+      </div>
+
+      <div class="card chart-container">
+        <h3>Количество подходов</h3>
+        <canvas id="chart-sets"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-tab active" data-tab="dashboard">
+      <span class="nav-icon">&#x1F3E0;</span>
+      <span class="nav-label">Главная</span>
+    </button>
+    <button class="nav-tab" data-tab="workout">
+      <span class="nav-icon">&#x1F4AA;</span>
+      <span class="nav-label">Тренировка</span>
+    </button>
+    <button class="nav-tab" data-tab="history">
+      <span class="nav-icon">&#x1F4C5;</span>
+      <span class="nav-label">История</span>
+    </button>
+    <button class="nav-tab" data-tab="progress">
+      <span class="nav-icon">&#x1F4C8;</span>
+      <span class="nav-label">Прогресс</span>
+    </button>
+  </nav>
+
+</body>
+</html>

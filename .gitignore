@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Skills & agents (installed locally)
+.agents/
+.claude/skills/
+.windsurf/
+skills/
+
+# MCP config (may contain tokens)
+.mcp.json
+
+# Logs
+*.log
+
+# Build artifacts
+dist/
+
+# Session/temp
+*.session
+*.lock
