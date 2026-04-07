@@ -44,6 +44,8 @@
     });
 
     if (tab === 'dashboard') refreshDashboard();
+    if (tab === 'history' && window.History) History.init();
+    if (tab === 'progress' && window.Progress) Progress.init();
   }
 
   // ── Exercise Select ──

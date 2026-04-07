@@ -1,31 +1,11 @@
 (function () {
   'use strict';
 
-  var EXERCISE_NAMES = {
-    'bench-press': 'Жим лёжа',
-    'incline-press': 'Жим на наклонной',
-    'dumbbell-fly': 'Разводка гантелей',
-    'deadlift': 'Становая тяга',
-    'pull-up': 'Подтягивания',
-    'barbell-row': 'Тяга штанги в наклоне',
-    'squat': 'Приседания',
-    'leg-press': 'Жим ногами',
-    'lunges': 'Выпады',
-    'overhead-press': 'Жим стоя',
-    'lateral-raise': 'Махи в стороны',
-    'bicep-curl': 'Сгибания на бицепс',
-    'tricep-extension': 'Разгибания на трицепс'
-  };
-
   function formatDate(dateStr) {
     var d = new Date(dateStr + 'T00:00:00');
     var days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     var months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
     return days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
-  }
-
-  function getExerciseLabel(name) {
-    return EXERCISE_NAMES[name] || name;
   }
 
   function getAllExerciseNames(workouts) {
@@ -49,7 +29,7 @@
     var html = '<option value="">\u0412\u0441\u0435 \u0443\u043F\u0440\u0430\u0436\u043D\u0435\u043D\u0438\u044F</option>';
     names.forEach(function (name) {
       var selected = name === current ? ' selected' : '';
-      html += '<option value="' + name + '"' + selected + '>' + getExerciseLabel(name) + '</option>';
+      html += '<option value="' + name + '"' + selected + '>' + name + '</option>';
     });
     select.innerHTML = html;
   }
@@ -126,7 +106,7 @@
 
           return '<div style="margin-bottom:var(--space-3);">' +
             '<div style="font-weight:var(--font-weight-semibold);color:var(--color-text-primary);margin-bottom:var(--space-1);">' +
-              getExerciseLabel(ex.name) +
+              ex.name +
             '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:var(--space-1);">' + setsHtml + '</div>' +
           '</div>';

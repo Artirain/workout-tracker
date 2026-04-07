@@ -1,22 +1,6 @@
 (function () {
   'use strict';
 
-  var EXERCISE_NAMES = {
-    'bench-press': 'Жим лёжа',
-    'incline-press': 'Жим на наклонной',
-    'dumbbell-fly': 'Разводка гантелей',
-    'deadlift': 'Становая тяга',
-    'pull-up': 'Подтягивания',
-    'barbell-row': 'Тяга штанги в наклоне',
-    'squat': 'Приседания',
-    'leg-press': 'Жим ногами',
-    'lunges': 'Выпады',
-    'overhead-press': 'Жим стоя',
-    'lateral-raise': 'Махи в стороны',
-    'bicep-curl': 'Сгибания на бицепс',
-    'tricep-extension': 'Разгибания на трицепс'
-  };
-
   var TIME_RANGES = [
     { label: '2 недели', days: 14 },
     { label: '1 месяц', days: 30 },
@@ -72,7 +56,7 @@
   };
 
   function getExerciseLabel(name) {
-    return EXERCISE_NAMES[name] || name;
+    return name;
   }
 
   function getAllExerciseNames() {
