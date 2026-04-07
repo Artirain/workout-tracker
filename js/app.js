@@ -24,6 +24,14 @@
 
       switchTab(tab);
     });
+
+    var logo = $('#logo-home');
+    if (logo) {
+      logo.addEventListener('click', function (e) {
+        e.preventDefault();
+        switchTab('dashboard');
+      });
+    }
   }
 
   function switchTab(tab) {
@@ -59,31 +67,13 @@
   function populateExerciseSelect() {
     var select = $('#exercise-select');
     if (!select) return;
-
-    var customExercises = WorkoutData.getExercises();
-
-    var existingCustomGroup = select.querySelector('optgroup[label="Мои упражнения"]');
-    if (existingCustomGroup) existingCustomGroup.remove();
-
-    var addOption = select.querySelector('option[value="__add_new__"]');
-    if (addOption) addOption.remove();
-
-    if (customExercises.length > 0) {
-      var group = document.createElement('optgroup');
-      group.label = 'Мои упражнения';
-      customExercises.forEach(function (name) {
-        var opt = document.createElement('option');
-        opt.value = 'custom:' + name;
-        opt.textContent = name;
-        group.appendChild(opt);
-      });
-      select.appendChild(group);
-    }
-
-    var opt = document.createElement('option');
-    opt.value = '__add_new__';
-    opt.textContent = '+ Добавить упражнение...';
-    select.appendChild(opt);
+    var exercises = WorkoutData.getExercises();
+    var html = '<option value="">Выбери упражнение...</option>';
+    exercises.forEach(function(name) {
+      html += '<option value="' + name + '">' + name + '</option>';
+    });
+    html += '<option value="__add_new__">+ Добавить упражнение...</option>';
+    select.innerHTML = html;
   }
 
   function showCustomExerciseInput() {
@@ -137,7 +127,7 @@
     hideCustomExerciseInput();
 
     var select = $('#exercise-select');
-    select.value = 'custom:' + name;
+    select.value = name;
   }
 
   // ── Sets Management ──
@@ -258,10 +248,8 @@
 
   function getSelectedExerciseName() {
     var select = $('#exercise-select');
-    if (!select || !select.value) return null;
-
-    var option = select.options[select.selectedIndex];
-    return option ? option.textContent : null;
+    if (!select || !select.value || select.value === '__add_new__') return null;
+    return select.value;
   }
 
   function addExerciseToSession() {
@@ -356,87 +344,7 @@
   // ── Dashboard ──
 
   function refreshDashboard() {
-    var workouts = WorkoutData.getWorkouts();
-    var today = new Date().toISOString().slice(0, 10);
-    var todayWorkouts = workouts.filter(function (w) { return w.date === today; });
-
-    var totalSets = 0;
-    var totalVolume = 0;
-
-    todayWorkouts.forEach(function (w) {
-      (w.exercises || []).forEach(function (ex) {
-        (ex.sets || []).forEach(function (s) {
-          totalSets++;
-          totalVolume += (Number(s.weight) || 0) * (Number(s.reps) || 0);
-        });
-      });
-    });
-
-    var elWorkouts = $('#today-workouts');
-    var elSets = $('#today-sets');
-    var elVolume = $('#today-volume');
-
-    if (elWorkouts) elWorkouts.textContent = todayWorkouts.length;
-    if (elSets) elSets.textContent = totalSets;
-    if (elVolume) elVolume.textContent = totalVolume;
-
-    refreshRecentList(workouts.slice(0, 5));
-    refreshWater();
-  }
-
-  function refreshRecentList(workouts) {
-    var ul = $('#recent-list');
-    if (!ul) return;
-
-    if (workouts.length === 0) {
-      ul.innerHTML = '<li class="empty-state">Пока нет тренировок. Начни прямо сейчас!</li>';
-      return;
-    }
-
-    ul.innerHTML = '';
-    workouts.forEach(function (w) {
-      var li = document.createElement('li');
-      li.className = 'workout-list-item';
-
-      var exNames = (w.exercises || []).map(function (e) { return e.name; }).join(', ');
-      var totalSets = 0;
-      (w.exercises || []).forEach(function (e) { totalSets += (e.sets || []).length; });
-
-      li.innerHTML =
-        '<div class="workout-list-date">' + formatDate(w.date) + '</div>' +
-        '<div class="workout-list-exercises">' + escapeHtml(exNames) + '</div>' +
-        '<div class="workout-list-meta">' + totalSets + ' подх.</div>';
-      ul.appendChild(li);
-    });
-  }
-
-  // ── Water Tracker ──
-
-  function initWater() {
-    var btn = $('#water-add');
-    if (!btn) return;
-
-    btn.addEventListener('click', function () {
-      var today = new Date().toISOString().slice(0, 10);
-      var current = WorkoutData.getWaterForDate(today);
-      if (current < 8) {
-        WorkoutData.setWater(today, current + 1);
-        refreshWater();
-      }
-    });
-  }
-
-  function refreshWater() {
-    var today = new Date().toISOString().slice(0, 10);
-    var count = WorkoutData.getWaterForDate(today);
-    var el = $('#water-count');
-    if (el) el.textContent = count;
-
-    var bar = $('#water-bar');
-    if (bar) {
-      var pct = Math.min(count / 8 * 100, 100);
-      bar.innerHTML = '<div class="progress"><div class="progress__fill" style="width:' + pct + '%"></div></div>';
-    }
+    if (window.Dashboard) Dashboard.init();
   }
 
   // ── Toast Notifications ──
@@ -469,11 +377,6 @@
     return div.innerHTML;
   }
 
-  function formatDate(dateStr) {
-    var parts = dateStr.split('-');
-    return parts[2] + '.' + parts[1] + '.' + parts[0];
-  }
-
   // ── Init ──
 
   document.addEventListener('DOMContentLoaded', async function () {
@@ -483,7 +386,6 @@
     initSets();
     initWorkoutSession();
     initSessionListDelegation();
-    initWater();
     refreshDashboard();
   });
 })();

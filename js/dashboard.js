@@ -4,22 +4,6 @@
   var WATER_GOAL = 2000;
   var WATER_STEP = 250;
 
-  var EXERCISE_NAMES = {
-    'bench-press': 'Жим лёжа',
-    'incline-press': 'Жим на наклонной',
-    'dumbbell-fly': 'Разводка гантелей',
-    'deadlift': 'Становая тяга',
-    'pull-up': 'Подтягивания',
-    'barbell-row': 'Тяга штанги в наклоне',
-    'squat': 'Приседания',
-    'leg-press': 'Жим ногами',
-    'lunges': 'Выпады',
-    'overhead-press': 'Жим стоя',
-    'lateral-raise': 'Махи в стороны',
-    'bicep-curl': 'Сгибания на бицепс',
-    'tricep-extension': 'Разгибания на трицепс'
-  };
-
   function todayStr() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -63,50 +47,120 @@
     var today = todayStr();
     var current = WorkoutData.getWaterForDate(today);
     var pct = Math.min(current / WATER_GOAL, 1);
-    var radius = 54;
+    var radius = 62;
     var circumference = 2 * Math.PI * radius;
     var offset = circumference * (1 - pct);
 
     container.innerHTML =
       '<h2>\uD83D\uDCA7 \u0412\u043E\u0434\u0430</h2>' +
-      '<div style="display:flex;align-items:center;gap:var(--space-6);flex-wrap:wrap;justify-content:center;">' +
-        '<div class="progress-ring" style="width:130px;height:130px;">' +
-          '<svg class="progress-ring__svg" width="130" height="130" viewBox="0 0 130 130">' +
-            '<circle class="progress-ring__track" cx="65" cy="65" r="' + radius + '" stroke-width="10"/>' +
-            '<circle class="progress-ring__fill" cx="65" cy="65" r="' + radius + '" stroke-width="10"' +
+      '<div class="water-ring-container">' +
+        '<div class="water-ring">' +
+          '<svg width="150" height="150" viewBox="0 0 150 150">' +
+            '<circle class="water-ring__track" cx="75" cy="75" r="' + radius + '" stroke-width="10"/>' +
+            '<circle class="water-ring__fill" cx="75" cy="75" r="' + radius + '" stroke-width="10"' +
               ' stroke-dasharray="' + circumference + '"' +
-              ' stroke-dashoffset="' + offset + '"' +
-              ' style="stroke:var(--color-accent);"/>' +
+              ' stroke-dashoffset="' + offset + '"/>' +
           '</svg>' +
-          '<span class="progress-ring__label" style="font-size:var(--font-size-lg);">' +
-            current + '<br><span style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);">\u043C\u043B</span>' +
-          '</span>' +
-        '</div>' +
-        '<div style="display:flex;flex-direction:column;gap:var(--space-3);align-items:center;">' +
-          '<span style="color:var(--color-text-secondary);font-size:var(--font-size-sm);">' +
-            current + ' / ' + WATER_GOAL + ' \u043C\u043B</span>' +
-          '<div style="display:flex;gap:var(--space-2);">' +
-            '<button class="btn btn--sm btn--outline" id="water-minus">\u2212 ' + WATER_STEP + ' \u043C\u043B</button>' +
-            '<button class="btn btn--sm btn--primary" id="water-plus">+ ' + WATER_STEP + ' \u043C\u043B</button>' +
+          '<div class="water-ring__label">' +
+            '<span class="water-ring__amount">' + current + '</span>' +
+            '<span class="water-ring__goal">\u0438\u0437 ' + WATER_GOAL + ' \u043C\u043B</span>' +
           '</div>' +
+        '</div>' +
+        '<div class="water-ring-actions">' +
+          '<button class="btn--water btn--water-minus" id="water-minus">\u2212</button>' +
+          '<span class="water-ring-actions__amount">' + WATER_STEP + ' \u043C\u043B</span>' +
+          '<button class="btn--water" id="water-plus">+</button>' +
         '</div>' +
       '</div>';
 
-    document.getElementById('water-plus').addEventListener('click', function () {
-      var val = WorkoutData.getWaterForDate(today) + WATER_STEP;
-      WorkoutData.setWater(today, val);
-      renderWaterTracker();
-    });
+    var plusBtn = document.getElementById('water-plus');
+    var minusBtn = document.getElementById('water-minus');
 
-    document.getElementById('water-minus').addEventListener('click', function () {
-      var val = Math.max(0, WorkoutData.getWaterForDate(today) - WATER_STEP);
-      WorkoutData.setWater(today, val);
-      renderWaterTracker();
-    });
+    if (plusBtn) {
+      plusBtn.addEventListener('click', function () {
+        var val = WorkoutData.getWaterForDate(today) + WATER_STEP;
+        WorkoutData.setWater(today, val);
+        renderWaterTracker();
+      });
+    }
+
+    if (minusBtn) {
+      minusBtn.addEventListener('click', function () {
+        var val = Math.max(0, WorkoutData.getWaterForDate(today) - WATER_STEP);
+        WorkoutData.setWater(today, val);
+        renderWaterTracker();
+      });
+    }
   }
 
-  function getExerciseLabel(name) {
-    return EXERCISE_NAMES[name] || name;
+  function formatSet(s) {
+    var weight = Number(s.weight) || 0;
+    var reps = Number(s.reps) || 0;
+    if (weight === 0) {
+      return '\u00D7 ' + reps;
+    }
+    return weight + '\u043A\u0433 \u00D7 ' + reps;
+  }
+
+  function calcWorkoutVolume(w) {
+    var total = 0;
+    (w.exercises || []).forEach(function (ex) {
+      (ex.sets || []).forEach(function (s) {
+        total += (Number(s.weight) || 0) * (Number(s.reps) || 0);
+      });
+    });
+    return total;
+  }
+
+  function showWorkoutModal(w) {
+    var existing = document.getElementById('workout-detail-modal');
+    if (existing) existing.remove();
+
+    var totalVol = calcWorkoutVolume(w);
+
+    var exercisesHtml = (w.exercises || []).map(function (ex) {
+      var setsHtml = (ex.sets || []).map(function (s, i) {
+        return '<div class="history-set">' +
+          '<span class="history-set__number">\u0421\u0435\u0442 ' + (i + 1) + '</span>' +
+          '<span class="history-set__weight">' + formatSet(s) + '</span>' +
+        '</div>';
+      }).join('');
+
+      return '<div class="history-exercise">' +
+        '<div class="history-exercise__name">' + ex.name + '</div>' +
+        '<div class="history-exercise__details" style="display:block;">' + setsHtml + '</div>' +
+      '</div>';
+    }).join('');
+
+    var modal = document.createElement('div');
+    modal.id = 'workout-detail-modal';
+    modal.className = 'workout-modal-overlay';
+
+    modal.innerHTML =
+      '<div class="workout-modal">' +
+        '<button class="workout-modal__close" id="modal-close-btn">\u00D7</button>' +
+        '<div class="card__header">' +
+          '<span class="badge badge--accent">' +
+            '\uD83C\uDFCB\uFE0F ' + formatDate(w.date) + '</span>' +
+        '</div>' +
+        exercisesHtml +
+        '<div class="card__footer" style="justify-content:space-between;font-weight:600;">' +
+          '<span>\u041E\u0431\u0449\u0438\u0439 \u043E\u0431\u044A\u0451\u043C</span>' +
+          '<span>' + Math.round(totalVol).toLocaleString('ru-RU') + ' \u043A\u0433</span>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(modal);
+
+    document.getElementById('modal-close-btn').addEventListener('click', function () {
+      modal.remove();
+    });
+
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
   }
 
   function renderRecentWorkouts() {
@@ -120,33 +174,46 @@
       return;
     }
 
-    list.innerHTML = workouts.map(function (w) {
-      var exercises = (w.exercises || []).map(function (ex) {
-        var setsInfo = (ex.sets || []).map(function (s) {
-          return (s.weight || 0) + '\u043A\u0433 \u00D7 ' + (s.reps || 0);
-        }).join(', ');
-        return '<strong>' + getExerciseLabel(ex.name) + '</strong>: ' + setsInfo;
-      }).join('<br>');
+    list.innerHTML = workouts.map(function (w, idx) {
+      var exerciseNames = (w.exercises || []).map(function (ex) {
+        return ex.name;
+      }).join(', ');
 
-      var totalVol = 0;
-      (w.exercises || []).forEach(function (ex) {
-        (ex.sets || []).forEach(function (s) {
-          totalVol += (Number(s.weight) || 0) * (Number(s.reps) || 0);
-        });
-      });
+      var totalVol = calcWorkoutVolume(w);
 
-      return '<li class="card card--interactive" style="margin-bottom:var(--space-2);list-style:none;">' +
+      return '<li class="card card--interactive" data-workout-idx="' + idx + '" ' +
+        'style="margin-bottom:var(--space-2);list-style:none;cursor:pointer;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-2);">' +
           '<span class="badge badge--accent">' + formatDate(w.date) + '</span>' +
           '<span style="color:var(--color-text-tertiary);font-size:var(--font-size-xs);">' +
             Math.round(totalVol).toLocaleString('ru-RU') + ' \u043A\u0433</span>' +
         '</div>' +
-        '<div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);line-height:1.6;">' + exercises + '</div>' +
+        '<div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);line-height:1.6;' +
+          'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + exerciseNames + '</div>' +
+        '<div style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);margin-top:4px;">' +
+          '\u041D\u0430\u0436\u043C\u0438 \u0434\u043B\u044F \u043F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0435\u0439</div>' +
       '</li>';
     }).join('');
+
+    var items = list.querySelectorAll('[data-workout-idx]');
+    items.forEach(function (item) {
+      item.addEventListener('click', function () {
+        var idx = Number(item.getAttribute('data-workout-idx'));
+        var w = workouts[idx];
+        if (w) showWorkoutModal(w);
+      });
+    });
   }
 
   function init() {
+    if (typeof WorkoutData === 'undefined') {
+      document.addEventListener('DOMContentLoaded', function () {
+        renderStats();
+        renderWaterTracker();
+        renderRecentWorkouts();
+      });
+      return;
+    }
     renderStats();
     renderWaterTracker();
     renderRecentWorkouts();

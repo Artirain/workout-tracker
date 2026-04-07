@@ -249,6 +249,7 @@
 
 /* Full width */
 .btn--block {
+  display: flex;
   width: 100%;
 }
 
@@ -361,11 +362,38 @@ select.input {
   padding-right: var(--space-10);
 }
 
+select.input option {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  padding: var(--space-2);
+}
+
+select.input option:checked {
+  background: var(--color-accent);
+  color: white;
+}
+
+select.input optgroup {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+}
+
 /* Textarea */
 textarea.input {
   min-height: 100px;
   resize: vertical;
   line-height: var(--line-height-normal);
+}
+
+/* Hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Number input (for reps, weight, etc.) */
