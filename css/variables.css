@@ -144,40 +144,59 @@
 }
 
 [data-theme="light"] {
-  --color-bg-primary: #f8fafc;
-  --color-bg-secondary: #f1f5f9;
-  --color-bg-tertiary: #e2e8f0;
+  /* Light purple background */
+  --color-bg-primary: #f5f0ff;
+  --color-bg-secondary: #ede5ff;
+  --color-bg-tertiary: #e0d4f7;
   --color-bg-elevated: #ffffff;
 
-  --color-surface: rgba(0, 0, 0, 0.03);
-  --color-surface-hover: rgba(0, 0, 0, 0.06);
-  --color-surface-active: rgba(0, 0, 0, 0.09);
-  --color-surface-glass: rgba(255, 255, 255, 0.7);
+  /* Cards — frosted white on purple */
+  --color-surface: rgba(255, 255, 255, 0.55);
+  --color-surface-hover: rgba(255, 255, 255, 0.75);
+  --color-surface-active: rgba(255, 255, 255, 0.85);
+  --color-surface-glass: rgba(255, 255, 255, 0.6);
 
-  --color-accent: #2563eb;
-  --color-accent-hover: #3b82f6;
-  --color-accent-active: #1d4ed8;
-  --color-accent-subtle: rgba(37, 99, 235, 0.08);
-  --color-accent-glow: rgba(37, 99, 235, 0.2);
+  /* Accent — purple instead of blue */
+  --color-accent: #7c3aed;
+  --color-accent-hover: #8b5cf6;
+  --color-accent-active: #6d28d9;
+  --color-accent-subtle: rgba(124, 58, 237, 0.1);
+  --color-accent-glow: rgba(124, 58, 237, 0.25);
 
   --color-success: #16a34a;
   --color-success-hover: #22c55e;
-  --color-success-subtle: rgba(22, 163, 74, 0.08);
+  --color-success-subtle: rgba(22, 163, 74, 0.1);
 
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-tertiary: #94a3b8;
-  --color-text-disabled: #cbd5e1;
+  --color-warning: #d97706;
+  --color-warning-subtle: rgba(217, 119, 6, 0.1);
 
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-hover: rgba(0, 0, 0, 0.15);
+  --color-error: #dc2626;
+  --color-error-hover: #ef4444;
+  --color-error-subtle: rgba(220, 38, 38, 0.1);
 
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-border: rgba(0, 0, 0, 0.06);
+  /* Text — dark on light purple */
+  --color-text-primary: #1e1035;
+  --color-text-secondary: #4a3a6b;
+  --color-text-tertiary: #8b7aab;
+  --color-text-disabled: #bfb3d4;
+  --color-text-inverse: #ffffff;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  /* Borders — subtle purple tint */
+  --color-border: rgba(124, 58, 237, 0.1);
+  --color-border-hover: rgba(124, 58, 237, 0.2);
+  --color-border-focus: var(--color-accent);
+
+  /* Glass — white frost */
+  --glass-bg: rgba(255, 255, 255, 0.5);
+  --glass-border: rgba(124, 58, 237, 0.08);
+
+  /* Shadows — soft purple */
+  --shadow-sm: 0 1px 3px rgba(124, 58, 237, 0.06);
+  --shadow-md: 0 4px 12px rgba(124, 58, 237, 0.1);
+  --shadow-lg: 0 8px 24px rgba(124, 58, 237, 0.14);
+  --shadow-xl: 0 16px 48px rgba(124, 58, 237, 0.18);
+  --shadow-glow-accent: 0 0 20px rgba(124, 58, 237, 0.25);
+  --shadow-glow-success: 0 0 20px rgba(22, 163, 74, 0.2);
 }
 
 /* Reduced motion preference */

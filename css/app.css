@@ -44,16 +44,69 @@
 /* ── Light theme overrides ── */
 
 [data-theme="light"] .bottom-nav {
-  background: rgba(255, 255, 255, 0.8);
-  border-top-color: rgba(0, 0, 0, 0.08);
+  background: rgba(245, 240, 255, 0.85);
+  border-top-color: rgba(124, 58, 237, 0.1);
+  backdrop-filter: blur(20px);
 }
 
 [data-theme="light"] body {
-  background: var(--color-bg-primary);
+  background: linear-gradient(135deg, #f5f0ff 0%, #ede5ff 50%, #e8e0f5 100%);
+  background-attachment: fixed;
 }
 
 [data-theme="light"] body::before {
   opacity: 0;
+}
+
+[data-theme="light"] .app-header h1 {
+  background: linear-gradient(135deg, #1e1035 30%, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="light"] .summary-value {
+  color: #7c3aed;
+  text-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+}
+
+[data-theme="light"] .badge--accent {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+
+[data-theme="light"] .nav-tab.active {
+  color: #7c3aed;
+}
+
+[data-theme="light"] .nav-tab.active::before {
+  background: #7c3aed;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+}
+
+[data-theme="light"] select.input option {
+  background: #ffffff;
+  color: #1e1035;
+}
+
+[data-theme="light"] select.input option:checked {
+  background: #7c3aed;
+  color: white;
+}
+
+[data-theme="light"] .water-ring__amount {
+  color: #7c3aed;
+}
+
+[data-theme="light"] .btn--water {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.25);
+  color: #7c3aed;
+}
+
+[data-theme="light"] .btn--water:hover {
+  background: rgba(124, 58, 237, 0.2);
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
 }
 
 .app-header h1 {
