@@ -3,6 +3,7 @@
 
   var chartMaxWeight = null;
   var chartMuscleGroups = null;
+  var chartBodyWeight = null;
   var initialized = false;
 
   var CHART_COLORS = {
@@ -242,6 +243,7 @@
   function destroyChart() {
     if (chartMaxWeight) { chartMaxWeight.destroy(); chartMaxWeight = null; }
     if (chartMuscleGroups) { chartMuscleGroups.destroy(); chartMuscleGroups = null; }
+    if (chartBodyWeight) { chartBodyWeight.destroy(); chartBodyWeight = null; }
   }
 
   function renderChart(sessions) {
@@ -370,12 +372,16 @@
             labels: {
               color: CHART_COLORS.textTertiary,
               padding: 12,
+              font: { size: 12 },
+              usePointStyle: true,
+              pointStyle: 'circle',
               generateLabels: function (chart) {
                 var ds = chart.data.datasets[0];
                 return chart.data.labels.map(function (label, i) {
                   return {
-                    text: label + ' (' + ds.data[i] + ')',
+                    text: label + ' (' + ds.data[i] + ' подх.)',
                     fillStyle: ds.backgroundColor[i],
+                    fontColor: '#f1f5f9',
                     hidden: false,
                     index: i
                   };
@@ -533,6 +539,56 @@
     renderChart(sessions);
   }
 
+  function renderBodyWeightChart() {
+    if (chartBodyWeight) { chartBodyWeight.destroy(); chartBodyWeight = null; }
+
+    var ctx = document.getElementById('chart-body-weight');
+    var trendEl = document.getElementById('body-weight-trend');
+    if (!ctx || typeof Chart === 'undefined' || !WorkoutData.getBodyWeightHistory) return;
+
+    var history = WorkoutData.getBodyWeightHistory(90);
+    if (!history.length) {
+      if (trendEl) trendEl.innerHTML = '<span style="color:var(--color-text-tertiary);font-size:var(--font-size-sm);">\u041D\u0435\u0442 \u0434\u0430\u043D\u043D\u044B\u0445. \u0412\u0432\u0435\u0434\u0438 \u0432\u0435\u0441 \u0432 \u043C\u043E\u0434\u0430\u043B\u043A\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438.</span>';
+      return;
+    }
+
+    var labels = history.map(function (h) { return formatDateShort(h.date); });
+    var data = history.map(function (h) { return h.weight; });
+
+    chartBodyWeight = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '\u0412\u0435\u0441 (\u043A\u0433)',
+          data: data,
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139,92,246,0.1)',
+          borderWidth: 2,
+          pointBackgroundColor: '#8b5cf6',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: deepMerge(CHART_DEFAULTS, {
+        scales: { y: { title: { display: true, text: '\u043A\u0433', color: CHART_COLORS.textTertiary } } }
+      })
+    });
+
+    // Trend text
+    if (trendEl && history.length >= 2) {
+      var first = history[0].weight;
+      var last = history[history.length - 1].weight;
+      var diff = last - first;
+      var sign = diff >= 0 ? '+' : '';
+      var cls = diff > 0 ? 'color:var(--color-success)' : (diff < 0 ? 'color:var(--color-error)' : 'color:var(--color-text-tertiary)');
+      trendEl.innerHTML = '<span style="font-size:var(--font-size-sm);' + cls + ';font-weight:600;">' +
+        sign + (Math.round(diff * 10) / 10) + ' \u043A\u0433 \u0437\u0430 \u043F\u0435\u0440\u0438\u043E\u0434</span>';
+    }
+  }
+
   function bindEvents() {
     var select = document.getElementById('progress-exercise');
     if (select) {
@@ -547,6 +603,7 @@
     ensureRecordsSection();
     renderPersonalRecords();
     renderMuscleGroupChart();
+    renderBodyWeightChart();
     renderAchievements();
 
     if (!initialized) {

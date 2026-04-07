@@ -154,6 +154,7 @@
 
     var totalVol = calcWorkoutVolume(w);
     var water = WorkoutData.getWaterForDate(w.date);
+    var bodyWeight = WorkoutData.getBodyWeight ? WorkoutData.getBodyWeight(w.date) : 0;
 
     var exercisesHtml = (w.exercises || []).map(function (ex) {
       var setsHtml = (ex.sets || []).map(function (s, i) {
@@ -187,9 +188,32 @@
               '<span style="color:#38bdf8;">' + water + ' \u043C\u043B</span>' +
             '</div>'
           : '') +
+        '<div class="card__footer" style="flex-direction:column;gap:var(--space-2);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;">' +
+            '<span style="font-weight:600;">\u2696\uFE0F \u0412\u0435\u0441 \u0442\u0435\u043B\u0430</span>' +
+            '<span id="modal-bw-display" style="font-weight:700;color:var(--color-accent);">' +
+              (bodyWeight > 0 ? bodyWeight + ' \u043A\u0433' : '\u2014') + '</span>' +
+          '</div>' +
+          '<div style="display:flex;gap:var(--space-2);align-items:center;">' +
+            '<input type="number" id="modal-bw-input" class="input" placeholder="\u0412\u0435\u0441 (\u043A\u0433)" ' +
+              'min="30" max="300" step="0.1" value="' + (bodyWeight > 0 ? bodyWeight : '') + '" style="flex:1;min-height:36px;">' +
+            '<button class="btn btn--primary btn--sm" id="modal-bw-save">\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C</button>' +
+          '</div>' +
+        '</div>' +
       '</div>';
 
     document.body.appendChild(modal);
+
+    var workoutDate = w.date;
+
+    document.getElementById('modal-bw-save').addEventListener('click', function () {
+      var input = document.getElementById('modal-bw-input');
+      var val = parseFloat(input.value);
+      if (!val || val < 20 || val > 300) return;
+      WorkoutData.setBodyWeight(workoutDate, val);
+      var display = document.getElementById('modal-bw-display');
+      if (display) display.textContent = val + ' \u043A\u0433';
+    });
 
     document.getElementById('modal-close-btn').addEventListener('click', function () {
       modal.remove();
@@ -260,40 +284,6 @@
     }
     renderStats();
     renderRecentWorkouts();
-    initBodyWeight();
-  }
-
-  function initBodyWeight() {
-    var display = document.getElementById('body-weight-display');
-    var input = document.getElementById('body-weight-input');
-    var saveBtn = document.getElementById('body-weight-save');
-    if (!display || !input || !saveBtn || !WorkoutData.getBodyWeight) return;
-
-    var today = todayStr();
-    var current = WorkoutData.getBodyWeight(today);
-    if (current > 0) {
-      display.textContent = current + ' кг';
-      input.value = current;
-    }
-
-    // Show last known weight if today is empty
-    if (!current) {
-      var history = WorkoutData.getBodyWeightHistory(90);
-      if (history.length > 0) {
-        var last = history[history.length - 1];
-        display.textContent = last.weight + ' кг';
-        display.style.opacity = '0.5';
-      }
-    }
-
-    saveBtn.addEventListener('click', function () {
-      var val = parseFloat(input.value);
-      if (!val || val < 20 || val > 300) return;
-      WorkoutData.setBodyWeight(today, val);
-      display.textContent = val + ' кг';
-      display.style.opacity = '1';
-      input.value = val;
-    });
   }
 
   window.Dashboard = {
