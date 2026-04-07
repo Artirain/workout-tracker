@@ -23,7 +23,7 @@
 
   <header class="app-header">
     <h1 id="logo-home" style="cursor:pointer;">&#x1F3CB;&#xFE0F; Workout Tracker</h1>
-    <p class="tagline">Каждая тренировка — шаг к лучшей версии себя</p>
+    <p class="tagline">«Каждая тренировка — шаг к лучшей версии себя»</p>
   </header>
 
   <main>
@@ -41,8 +41,8 @@
             <span class="summary-label">Подходов</span>
           </div>
           <div class="summary-item">
-            <span class="summary-value" id="today-volume">0</span>
-            <span class="summary-label">Объём (кг)</span>
+            <span class="summary-value" id="today-avg-weight">0</span>
+            <span class="summary-label">Средний вес</span>
           </div>
         </div>
       </div>
@@ -119,19 +119,13 @@
         </div>
       </div>
 
+      <div id="progress-comparison"></div>
+
+      <div id="progress-sessions"></div>
+
       <div class="card chart-container">
         <h3>Максимальный вес</h3>
         <canvas id="chart-max-weight"></canvas>
-      </div>
-
-      <div class="card chart-container">
-        <h3>Общий объём</h3>
-        <canvas id="chart-volume"></canvas>
-      </div>
-
-      <div class="card chart-container">
-        <h3>Количество подходов</h3>
-        <canvas id="chart-sets"></canvas>
       </div>
     </section>
   </main>

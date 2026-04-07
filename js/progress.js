@@ -1,29 +1,15 @@
 (function () {
   'use strict';
 
-  var TIME_RANGES = [
-    { label: '2 недели', days: 14 },
-    { label: '1 месяц', days: 30 },
-    { label: '3 месяца', days: 90 },
-    { label: 'Всё время', days: 3650 }
-  ];
-
   var chartMaxWeight = null;
-  var chartVolume = null;
-  var chartSets = null;
-  var currentRange = 30;
   var initialized = false;
 
   var CHART_COLORS = {
     accent: '#3b82f6',
     accentHover: '#60a5fa',
     success: '#22c55e',
-    successHover: '#4ade80',
-    warning: '#f59e0b',
-    textSecondary: '#94a3b8',
     textTertiary: '#64748b',
-    border: 'rgba(255,255,255,0.08)',
-    surface: 'rgba(255,255,255,0.04)'
+    border: 'rgba(255,255,255,0.08)'
   };
 
   var CHART_DEFAULTS = {
@@ -55,8 +41,17 @@
     }
   };
 
-  function getExerciseLabel(name) {
-    return name;
+  function deepMerge(target, source) {
+    var result = {};
+    Object.keys(target).forEach(function (k) { result[k] = target[k]; });
+    Object.keys(source).forEach(function (k) {
+      if (source[k] && typeof source[k] === 'object' && !Array.isArray(source[k]) && target[k]) {
+        result[k] = deepMerge(target[k], source[k]);
+      } else {
+        result[k] = source[k];
+      }
+    });
+    return result;
   }
 
   function getAllExerciseNames() {
@@ -74,144 +69,217 @@
     return parts[2] + '.' + parts[1];
   }
 
-  function getExerciseData(exerciseName, days) {
-    var progress = WorkoutData.getExerciseProgress(exerciseName, days);
+  function formatNum(n) {
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
 
-    var labels = [];
-    var maxWeights = [];
-    var volumes = [];
-    var setsCounts = [];
-
-    progress.forEach(function (p) {
-      labels.push(formatDateShort(p.date));
-      maxWeights.push(p.maxWeight);
-      volumes.push(Math.round(p.totalVolume));
-    });
-
-    // sets/reps trend — need to compute from raw workouts
-    var cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    var cutoffStr = cutoff.toISOString().slice(0, 10);
-
+  /**
+   * Collect all sessions for an exercise across all time.
+   * Returns array sorted by date ascending:
+   * [{ date, maxWeight, maxReps, totalVolume, sets: [{weight, reps}] }]
+   */
+  function getExerciseSessions(exerciseName) {
     var byDate = {};
     WorkoutData.getWorkouts().forEach(function (w) {
-      if (w.date < cutoffStr) return;
-      var ex = (w.exercises || []).find(function (e) { return e.name === exerciseName; });
-      if (!ex) return;
-      if (!byDate[w.date]) byDate[w.date] = { sets: 0, reps: 0 };
-      (ex.sets || []).forEach(function (s) {
-        byDate[w.date].sets++;
-        byDate[w.date].reps += Number(s.reps) || 0;
+      (w.exercises || []).forEach(function (ex) {
+        if (ex.name !== exerciseName) return;
+        if (!byDate[w.date]) {
+          byDate[w.date] = { date: w.date, maxWeight: 0, maxReps: 0, totalVolume: 0, sets: [] };
+        }
+        var entry = byDate[w.date];
+        (ex.sets || []).forEach(function (s) {
+          var weight = Number(s.weight) || 0;
+          var reps = Number(s.reps) || 0;
+          entry.sets.push({ weight: weight, reps: reps });
+          if (weight > entry.maxWeight) entry.maxWeight = weight;
+          if (reps > entry.maxReps) entry.maxReps = reps;
+          entry.totalVolume += weight * reps;
+        });
       });
     });
-
-    progress.forEach(function (p) {
-      var d = byDate[p.date];
-      setsCounts.push(d ? d.sets : 0);
+    return Object.values(byDate).sort(function (a, b) {
+      return a.date.localeCompare(b.date);
     });
-
-    return { labels: labels, maxWeights: maxWeights, volumes: volumes, setsCounts: setsCounts };
   }
 
-  function deepMerge(target, source) {
-    var result = {};
-    Object.keys(target).forEach(function (k) { result[k] = target[k]; });
-    Object.keys(source).forEach(function (k) {
-      if (source[k] && typeof source[k] === 'object' && !Array.isArray(source[k]) && target[k]) {
-        result[k] = deepMerge(target[k], source[k]);
+  function isBodyweight(sessions) {
+    return sessions.every(function (s) { return s.maxWeight === 0; });
+  }
+
+  function renderComparison(exerciseName, sessions) {
+    var container = document.getElementById('progress-comparison');
+    if (!container) return;
+
+    if (!sessions.length) {
+      container.innerHTML = '';
+      return;
+    }
+
+    var first = sessions[0];
+    var last = sessions[sessions.length - 1];
+    var bw = isBodyweight(sessions);
+
+    var mainLabel, mainValue, mainChange;
+
+    if (bw) {
+      mainLabel = 'Макс. повторения';
+      var firstMaxReps = first.maxReps;
+      var lastMaxReps = last.maxReps;
+      mainValue = firstMaxReps + ' → ' + lastMaxReps;
+      if (sessions.length > 1 && firstMaxReps > 0) {
+        var pct = ((lastMaxReps - firstMaxReps) / firstMaxReps * 100);
+        var sign = pct >= 0 ? '+' : '';
+        var cls = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : 'neutral');
+        mainChange = '<span class="progress-stat__change ' + cls + '">' + sign + formatNum(pct) + '%</span>';
       } else {
-        result[k] = source[k];
+        mainChange = '';
+      }
+    } else {
+      mainLabel = 'Макс. вес';
+      var firstMax = first.maxWeight;
+      var lastMax = last.maxWeight;
+      mainValue = formatNum(firstMax) + 'кг → ' + formatNum(lastMax) + 'кг';
+      if (sessions.length > 1 && firstMax > 0) {
+        var pct = ((lastMax - firstMax) / firstMax * 100);
+        var sign = pct >= 0 ? '+' : '';
+        var cls = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : 'neutral');
+        mainChange = '<span class="progress-stat__change ' + cls + '">' + sign + formatNum(pct) + '%</span>';
+      } else {
+        mainChange = '';
+      }
+    }
+
+    var avgWeight = 0;
+    if (!bw) {
+      var totalW = 0;
+      var countW = 0;
+      sessions.forEach(function (s) {
+        s.sets.forEach(function (set) {
+          if (set.weight > 0) { totalW += set.weight; countW++; }
+        });
+      });
+      avgWeight = countW > 0 ? totalW / countW : 0;
+    }
+
+    var html = '<div class="card card--accent">' +
+      '<h3>\uD83D\uDCC8 Прогресс: ' + exerciseName + '</h3>' +
+      '<div class="progress-comparison">' +
+        '<div class="progress-stat">' +
+          '<span class="progress-stat__label">' + mainLabel + '</span>' +
+          '<span class="progress-stat__value">' + mainValue + '</span>' +
+          mainChange +
+        '</div>' +
+        '<div class="progress-stat">' +
+          '<span class="progress-stat__label">Тренировок</span>' +
+          '<span class="progress-stat__value">' + sessions.length + '</span>' +
+        '</div>' +
+        '<div class="progress-stat">' +
+          '<span class="progress-stat__label">Период</span>' +
+          '<span class="progress-stat__value">' + formatDateShort(first.date) + ' — ' + formatDateShort(last.date) + '</span>' +
+        '</div>';
+
+    if (!bw && avgWeight > 0) {
+      html += '<div class="progress-stat">' +
+        '<span class="progress-stat__label">Средний вес</span>' +
+        '<span class="progress-stat__value">' + formatNum(avgWeight) + 'кг</span>' +
+      '</div>';
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+  }
+
+  function renderSessionHistory(sessions) {
+    var container = document.getElementById('progress-sessions');
+    if (!container) return;
+
+    if (!sessions.length) {
+      container.innerHTML = '';
+      return;
+    }
+
+    var bw = isBodyweight(sessions);
+
+    // Find best session index
+    var bestIdx = 0;
+    sessions.forEach(function (s, i) {
+      if (bw) {
+        if (s.maxReps > sessions[bestIdx].maxReps) bestIdx = i;
+      } else {
+        if (s.maxWeight > sessions[bestIdx].maxWeight) bestIdx = i;
       }
     });
-    return result;
+
+    var html = '<div class="card"><h3>\uD83D\uDCCB Все тренировки</h3><div class="session-history">';
+
+    // Show in reverse chronological order
+    for (var i = sessions.length - 1; i >= 0; i--) {
+      var s = sessions[i];
+      var isBest = i === bestIdx;
+      var rowClass = 'session-history__row' + (isBest ? ' session-history__row--best' : '');
+
+      var setsStr = s.sets.map(function (set) {
+        if (bw) return set.reps;
+        return formatNum(set.weight) + '\u00D7' + set.reps;
+      }).join(', ');
+
+      var maxStr = bw
+        ? ('макс ' + s.maxReps + ' повт')
+        : (formatNum(s.maxWeight) + 'кг');
+
+      html += '<div class="' + rowClass + '">' +
+        '<span class="session-history__date">' + formatDateShort(s.date) + '</span>' +
+        '<span class="session-history__sets">' + setsStr + '</span>' +
+        '<span class="session-history__max">' + maxStr + (isBest ? ' \u2B50' : '') + '</span>' +
+      '</div>';
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
   }
 
-  function destroyCharts() {
+  function destroyChart() {
     if (chartMaxWeight) { chartMaxWeight.destroy(); chartMaxWeight = null; }
-    if (chartVolume) { chartVolume.destroy(); chartVolume = null; }
-    if (chartSets) { chartSets.destroy(); chartSets = null; }
   }
 
-  function renderCharts(exerciseName) {
-    if (!exerciseName || typeof Chart === 'undefined') return;
+  function renderChart(sessions) {
+    destroyChart();
 
-    destroyCharts();
+    if (!sessions.length || typeof Chart === 'undefined') return;
 
-    var data = getExerciseData(exerciseName, currentRange);
+    var bw = isBodyweight(sessions);
 
-    if (!data.labels.length) return;
+    var labels = sessions.map(function (s) { return formatDateShort(s.date); });
+    var data = sessions.map(function (s) { return bw ? s.maxReps : s.maxWeight; });
 
-    // Chart 1: Max weight (line)
-    var ctx1 = document.getElementById('chart-max-weight');
-    if (ctx1) {
-      chartMaxWeight = new Chart(ctx1, {
-        type: 'line',
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: 'Макс. вес (кг)',
-            data: data.maxWeights,
-            borderColor: CHART_COLORS.accent,
-            backgroundColor: 'rgba(59,130,246,0.1)',
-            borderWidth: 2,
-            pointBackgroundColor: CHART_COLORS.accent,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            tension: 0.3,
-            fill: true
-          }]
-        },
-        options: deepMerge(CHART_DEFAULTS, {
-          scales: { y: { title: { display: true, text: 'кг', color: CHART_COLORS.textTertiary } } }
-        })
-      });
-    }
+    var ctx = document.getElementById('chart-max-weight');
+    if (!ctx) return;
 
-    // Chart 2: Volume (bar)
-    var ctx2 = document.getElementById('chart-volume');
-    if (ctx2) {
-      chartVolume = new Chart(ctx2, {
-        type: 'bar',
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: 'Объём (кг)',
-            data: data.volumes,
-            backgroundColor: 'rgba(34,197,94,0.6)',
-            borderColor: CHART_COLORS.success,
-            borderWidth: 1,
-            borderRadius: 4
-          }]
-        },
-        options: deepMerge(CHART_DEFAULTS, {
-          scales: { y: { title: { display: true, text: 'кг', color: CHART_COLORS.textTertiary } } }
-        })
-      });
-    }
+    // Update chart heading
+    var heading = ctx.parentElement.querySelector('h3');
+    if (heading) heading.textContent = bw ? 'Макс. повторения' : 'Максимальный вес';
 
-    // Chart 3: Sets trend (line)
-    var ctx3 = document.getElementById('chart-sets');
-    if (ctx3) {
-      chartSets = new Chart(ctx3, {
-        type: 'line',
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: 'Подходов',
-            data: data.setsCounts,
-            borderColor: CHART_COLORS.warning,
-            backgroundColor: 'rgba(245,158,11,0.1)',
-            borderWidth: 2,
-            pointBackgroundColor: CHART_COLORS.warning,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            tension: 0.3,
-            fill: true
-          }]
-        },
-        options: CHART_DEFAULTS
-      });
-    }
+    chartMaxWeight = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: bw ? 'Макс. повторения' : 'Макс. вес (кг)',
+          data: data,
+          borderColor: CHART_COLORS.accent,
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          borderWidth: 2,
+          pointBackgroundColor: CHART_COLORS.accent,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: deepMerge(CHART_DEFAULTS, {
+        scales: { y: { title: { display: true, text: bw ? 'повт' : 'кг', color: CHART_COLORS.textTertiary } } }
+      })
+    });
   }
 
   function renderPersonalRecords() {
@@ -231,7 +299,7 @@
     names.sort().forEach(function (name) {
       html += '<div style="background:var(--color-surface);border-radius:var(--radius-md);padding:var(--space-3);text-align:center;">' +
         '<div style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);margin-bottom:var(--space-1);">' +
-          getExerciseLabel(name) +
+          name +
         '</div>' +
         '<div style="font-size:var(--font-size-xl);font-weight:var(--font-weight-bold);color:var(--color-success);">' +
           records[name] + '<span style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);"> кг</span>' +
@@ -252,42 +320,9 @@
     var html = '<option value="">Выбери упражнение...</option>';
     names.forEach(function (name) {
       var selected = name === current ? ' selected' : '';
-      html += '<option value="' + name + '"' + selected + '>' + getExerciseLabel(name) + '</option>';
+      html += '<option value="' + name + '"' + selected + '>' + name + '</option>';
     });
     select.innerHTML = html;
-  }
-
-  function renderTimeRangeSelector() {
-    var section = document.getElementById('tab-progress');
-    if (!section) return;
-
-    var existing = document.getElementById('time-range-selector');
-    if (existing) return;
-
-    var firstCard = section.querySelector('.card');
-    if (!firstCard) return;
-
-    var div = document.createElement('div');
-    div.id = 'time-range-selector';
-    div.style.cssText = 'display:flex;gap:var(--space-2);margin-top:var(--space-3);flex-wrap:wrap;';
-
-    TIME_RANGES.forEach(function (r) {
-      var btn = document.createElement('button');
-      btn.className = 'btn btn--sm' + (r.days === currentRange ? ' btn--primary' : ' btn--ghost');
-      btn.textContent = r.label;
-      btn.addEventListener('click', function () {
-        currentRange = r.days;
-        div.querySelectorAll('.btn').forEach(function (b) {
-          b.className = 'btn btn--sm btn--ghost';
-        });
-        btn.className = 'btn btn--sm btn--primary';
-        var sel = document.getElementById('progress-exercise');
-        if (sel && sel.value) renderCharts(sel.value);
-      });
-      div.appendChild(btn);
-    });
-
-    firstCard.appendChild(div);
   }
 
   function ensureRecordsSection() {
@@ -297,27 +332,38 @@
     var card = document.createElement('div');
     card.className = 'card';
     card.id = 'personal-records-card';
-    card.innerHTML = '<h3>\uD83C\uDFC6 \u041B\u0438\u0447\u043D\u044B\u0435 \u0440\u0435\u043A\u043E\u0440\u0434\u044B</h3>' +
+    card.innerHTML = '<h3>\uD83C\uDFC6 Личные рекорды</h3>' +
       '<div id="personal-records"></div>';
     section.appendChild(card);
+  }
+
+  function onExerciseChange(exerciseName) {
+    if (!exerciseName) {
+      destroyChart();
+      var comp = document.getElementById('progress-comparison');
+      var sess = document.getElementById('progress-sessions');
+      if (comp) comp.innerHTML = '';
+      if (sess) sess.innerHTML = '';
+      return;
+    }
+
+    var sessions = getExerciseSessions(exerciseName);
+    renderComparison(exerciseName, sessions);
+    renderSessionHistory(sessions);
+    renderChart(sessions);
   }
 
   function bindEvents() {
     var select = document.getElementById('progress-exercise');
     if (select) {
       select.addEventListener('change', function () {
-        if (select.value) {
-          renderCharts(select.value);
-        } else {
-          destroyCharts();
-        }
+        onExerciseChange(select.value);
       });
     }
   }
 
   function init() {
     populateExerciseSelector();
-    renderTimeRangeSelector();
     ensureRecordsSection();
     renderPersonalRecords();
 
@@ -328,7 +374,7 @@
 
     var select = document.getElementById('progress-exercise');
     if (select && select.value) {
-      renderCharts(select.value);
+      onExerciseChange(select.value);
     }
   }
 

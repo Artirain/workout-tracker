@@ -379,6 +379,16 @@ select.input optgroup {
   font-weight: var(--font-weight-semibold);
 }
 
+/* Date input */
+input[type="date"].input {
+  color-scheme: dark;
+}
+
+input[type="date"].input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
 /* Textarea */
 textarea.input {
   min-height: 100px;

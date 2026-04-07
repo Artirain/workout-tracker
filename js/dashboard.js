@@ -16,29 +16,53 @@
 
   function renderStats() {
     var today = todayStr();
-    var workouts = WorkoutData.getWorkouts().filter(function (w) {
+    var allWorkouts = WorkoutData.getWorkouts();
+    var workouts = allWorkouts.filter(function (w) {
       return w.date === today;
     });
 
-    var totalSets = 0;
-    var totalVolume = 0;
+    var isToday = workouts.length > 0;
+    var statsWorkouts = workouts;
+    var headingEl = document.querySelector('.today-summary h2');
 
-    workouts.forEach(function (w) {
+    if (!isToday && allWorkouts.length > 0) {
+      var lastWorkout = allWorkouts[0];
+      statsWorkouts = [lastWorkout];
+      var parts = lastWorkout.date.split('-');
+      var ddmm = parts[2] + '.' + parts[1];
+      if (headingEl) headingEl.innerHTML = '\uD83D\uDCCA \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u044F\u044F \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 (' + ddmm + ')';
+    } else {
+      if (headingEl) headingEl.innerHTML = '\uD83D\uDCCA \u0421\u0432\u043E\u0434\u043A\u0430 \u0437\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F';
+    }
+
+    var totalSets = 0;
+    var weightSum = 0;
+    var weightCount = 0;
+
+    statsWorkouts.forEach(function (w) {
       (w.exercises || []).forEach(function (ex) {
         (ex.sets || []).forEach(function (s) {
           totalSets++;
-          totalVolume += (Number(s.weight) || 0) * (Number(s.reps) || 0);
+          var weight = Number(s.weight) || 0;
+          if (weight > 0) {
+            weightSum += weight;
+            weightCount++;
+          }
         });
       });
     });
 
+    var avgWeight = weightCount > 0 ? (weightSum / weightCount) : 0;
+
     var elWorkouts = document.getElementById('today-workouts');
     var elSets = document.getElementById('today-sets');
-    var elVolume = document.getElementById('today-volume');
+    var elAvgWeight = document.getElementById('today-avg-weight');
 
-    if (elWorkouts) elWorkouts.textContent = workouts.length;
+    if (elWorkouts) elWorkouts.textContent = statsWorkouts.length;
     if (elSets) elSets.textContent = totalSets;
-    if (elVolume) elVolume.textContent = Math.round(totalVolume).toLocaleString('ru-RU');
+    if (elAvgWeight) elAvgWeight.textContent = weightCount > 0
+      ? (Math.round(avgWeight * 10) / 10).toLocaleString('ru-RU') + ' \u043A\u0433'
+      : '\u2014';
   }
 
   function renderWaterTracker() {
@@ -118,6 +142,7 @@
     if (existing) existing.remove();
 
     var totalVol = calcWorkoutVolume(w);
+    var water = WorkoutData.getWaterForDate(w.date);
 
     var exercisesHtml = (w.exercises || []).map(function (ex) {
       var setsHtml = (ex.sets || []).map(function (s, i) {
@@ -149,6 +174,12 @@
           '<span>\u041E\u0431\u0449\u0438\u0439 \u043E\u0431\u044A\u0451\u043C</span>' +
           '<span>' + Math.round(totalVol).toLocaleString('ru-RU') + ' \u043A\u0433</span>' +
         '</div>' +
+        (water > 0
+          ? '<div class="card__footer" style="justify-content:space-between;font-weight:600;">' +
+              '<span>\uD83D\uDCA7 \u0412\u043E\u0434\u0430</span>' +
+              '<span>' + water + ' \u043C\u043B</span>' +
+            '</div>'
+          : '') +
       '</div>';
 
     document.body.appendChild(modal);
@@ -181,6 +212,11 @@
       }).join(', ');
 
       var totalVol = calcWorkoutVolume(w);
+      var water = WorkoutData.getWaterForDate(w.date);
+      var waterHtml = water > 0
+        ? '<div style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);margin-top:4px;">' +
+            '\uD83D\uDCA7 ' + water + ' \u043C\u043B</div>'
+        : '';
 
       return '<li class="card card--interactive" data-workout-idx="' + idx + '" ' +
         'style="margin-bottom:var(--space-2);list-style:none;cursor:pointer;">' +
@@ -191,6 +227,7 @@
         '</div>' +
         '<div style="font-size:var(--font-size-sm);color:var(--color-text-secondary);line-height:1.6;' +
           'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + exerciseNames + '</div>' +
+        waterHtml +
         '<div style="font-size:var(--font-size-xs);color:var(--color-text-tertiary);margin-top:4px;">' +
           '\u041D\u0430\u0436\u043C\u0438 \u0434\u043B\u044F \u043F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0435\u0439</div>' +
       '</li>';

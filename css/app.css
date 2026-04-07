@@ -21,9 +21,11 @@
 }
 
 .tagline {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   color: var(--color-text-tertiary);
   margin-bottom: 0;
+  font-style: italic;
+  letter-spacing: var(--letter-spacing-wide);
 }
 
 main {
@@ -1027,6 +1029,96 @@ main {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-medium);
+}
+
+/* Progress comparison */
+.progress-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.progress-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.progress-stat__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+}
+
+.progress-stat__value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.progress-stat__change {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.progress-stat__change.positive {
+  color: var(--color-success);
+}
+
+.progress-stat__change.negative {
+  color: var(--color-error);
+}
+
+.progress-stat__change.neutral {
+  color: var(--color-text-tertiary);
+}
+
+/* Session history table */
+.session-history {
+  margin-top: var(--space-3);
+}
+
+.session-history__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.session-history__row:last-child {
+  border-bottom: none;
+}
+
+.session-history__row--best {
+  background: var(--color-success-subtle);
+  border-radius: var(--radius-md);
+  border-bottom: none;
+}
+
+.session-history__date {
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+}
+
+.session-history__sets {
+  color: var(--color-text-secondary);
+  flex: 1;
+  margin: 0 var(--space-3);
+}
+
+.session-history__max {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 
