@@ -174,15 +174,43 @@
           '<span>\u041E\u0431\u0449\u0438\u0439 \u043E\u0431\u044A\u0451\u043C</span>' +
           '<span>' + Math.round(totalVol).toLocaleString('ru-RU') + ' \u043A\u0433</span>' +
         '</div>' +
-        (water > 0
-          ? '<div class="card__footer" style="justify-content:space-between;font-weight:600;">' +
-              '<span>\uD83D\uDCA7 \u0412\u043E\u0434\u0430</span>' +
-              '<span>' + water + ' \u043C\u043B</span>' +
-            '</div>'
-          : '') +
+        '<div class="card__footer" style="flex-direction:column;gap:var(--space-3);">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;">' +
+            '<span style="font-weight:600;">\uD83D\uDCA7 \u0412\u043E\u0434\u0430</span>' +
+            '<span id="modal-water-amount" style="font-weight:700;color:#38bdf8;">' + water + ' \u043C\u043B</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;justify-content:center;gap:var(--space-4);">' +
+            '<button class="btn--water btn--water-minus" id="modal-water-minus">\u2212</button>' +
+            '<span style="color:var(--color-text-tertiary);font-size:var(--font-size-sm);">250 \u043C\u043B</span>' +
+            '<button class="btn--water" id="modal-water-plus">+</button>' +
+          '</div>' +
+        '</div>' +
       '</div>';
 
     document.body.appendChild(modal);
+
+    var workoutDate = w.date;
+
+    function updateModalWater() {
+      var el = document.getElementById('modal-water-amount');
+      if (el) el.textContent = WorkoutData.getWaterForDate(workoutDate) + ' \u043C\u043B';
+    }
+
+    document.getElementById('modal-water-plus').addEventListener('click', function () {
+      var current = WorkoutData.getWaterForDate(workoutDate);
+      WorkoutData.setWater(workoutDate, current + WATER_STEP);
+      updateModalWater();
+      renderWaterTracker();
+      renderRecentWorkouts();
+    });
+
+    document.getElementById('modal-water-minus').addEventListener('click', function () {
+      var current = WorkoutData.getWaterForDate(workoutDate);
+      WorkoutData.setWater(workoutDate, Math.max(0, current - WATER_STEP));
+      updateModalWater();
+      renderWaterTracker();
+      renderRecentWorkouts();
+    });
 
     document.getElementById('modal-close-btn').addEventListener('click', function () {
       modal.remove();
