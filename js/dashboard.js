@@ -65,19 +65,27 @@
       : '\u2014';
   }
 
-  function renderWaterTracker() {
-    var container = document.querySelector('.water-tracker');
-    if (!container) return;
+  var activeWaterDate = null;
 
-    var today = todayStr();
-    var current = WorkoutData.getWaterForDate(today);
+  function renderWaterForDate(date) {
+    var widget = document.getElementById('water-widget');
+    if (!widget) return;
+
+    activeWaterDate = date;
+    var current = WorkoutData.getWaterForDate(date);
     var pct = Math.min(current / WATER_GOAL, 1);
     var radius = 62;
     var circumference = 2 * Math.PI * radius;
     var offset = circumference * (1 - pct);
+    var parts = date.split('-');
+    var dateLabel = parts[2] + '.' + parts[1] + '.' + parts[0];
 
-    container.innerHTML =
-      '<h2>\uD83D\uDCA7 \u0412\u043E\u0434\u0430</h2>' +
+    widget.style.display = '';
+    widget.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<h2>\uD83D\uDCA7 \u0412\u043E\u0434\u0430</h2>' +
+        '<span class="badge badge--accent">' + dateLabel + '</span>' +
+      '</div>' +
       '<div class="water-ring-container">' +
         '<div class="water-ring">' +
           '<svg width="150" height="150" viewBox="0 0 150 150">' +
@@ -98,24 +106,27 @@
         '</div>' +
       '</div>';
 
-    var plusBtn = document.getElementById('water-plus');
-    var minusBtn = document.getElementById('water-minus');
+    document.getElementById('water-plus').addEventListener('click', function () {
+      var val = WorkoutData.getWaterForDate(activeWaterDate) + WATER_STEP;
+      WorkoutData.setWater(activeWaterDate, val);
+      renderWaterForDate(activeWaterDate);
+      renderRecentWorkouts();
+    });
 
-    if (plusBtn) {
-      plusBtn.addEventListener('click', function () {
-        var val = WorkoutData.getWaterForDate(today) + WATER_STEP;
-        WorkoutData.setWater(today, val);
-        renderWaterTracker();
-      });
-    }
+    document.getElementById('water-minus').addEventListener('click', function () {
+      var val = Math.max(0, WorkoutData.getWaterForDate(activeWaterDate) - WATER_STEP);
+      WorkoutData.setWater(activeWaterDate, val);
+      renderWaterForDate(activeWaterDate);
+      renderRecentWorkouts();
+    });
 
-    if (minusBtn) {
-      minusBtn.addEventListener('click', function () {
-        var val = Math.max(0, WorkoutData.getWaterForDate(today) - WATER_STEP);
-        WorkoutData.setWater(today, val);
-        renderWaterTracker();
-      });
-    }
+    widget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function hideWaterWidget() {
+    var widget = document.getElementById('water-widget');
+    if (widget) widget.style.display = 'none';
+    activeWaterDate = null;
   }
 
   function formatSet(s) {
@@ -174,43 +185,15 @@
           '<span>\u041E\u0431\u0449\u0438\u0439 \u043E\u0431\u044A\u0451\u043C</span>' +
           '<span>' + Math.round(totalVol).toLocaleString('ru-RU') + ' \u043A\u0433</span>' +
         '</div>' +
-        '<div class="card__footer" style="flex-direction:column;gap:var(--space-3);">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;">' +
-            '<span style="font-weight:600;">\uD83D\uDCA7 \u0412\u043E\u0434\u0430</span>' +
-            '<span id="modal-water-amount" style="font-weight:700;color:#38bdf8;">' + water + ' \u043C\u043B</span>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;justify-content:center;gap:var(--space-4);">' +
-            '<button class="btn--water btn--water-minus" id="modal-water-minus">\u2212</button>' +
-            '<span style="color:var(--color-text-tertiary);font-size:var(--font-size-sm);">250 \u043C\u043B</span>' +
-            '<button class="btn--water" id="modal-water-plus">+</button>' +
-          '</div>' +
-        '</div>' +
+        (water > 0
+          ? '<div class="card__footer" style="justify-content:space-between;font-weight:600;">' +
+              '<span>\uD83D\uDCA7 \u0412\u043E\u0434\u0430</span>' +
+              '<span style="color:#38bdf8;">' + water + ' \u043C\u043B</span>' +
+            '</div>'
+          : '') +
       '</div>';
 
     document.body.appendChild(modal);
-
-    var workoutDate = w.date;
-
-    function updateModalWater() {
-      var el = document.getElementById('modal-water-amount');
-      if (el) el.textContent = WorkoutData.getWaterForDate(workoutDate) + ' \u043C\u043B';
-    }
-
-    document.getElementById('modal-water-plus').addEventListener('click', function () {
-      var current = WorkoutData.getWaterForDate(workoutDate);
-      WorkoutData.setWater(workoutDate, current + WATER_STEP);
-      updateModalWater();
-      renderWaterTracker();
-      renderRecentWorkouts();
-    });
-
-    document.getElementById('modal-water-minus').addEventListener('click', function () {
-      var current = WorkoutData.getWaterForDate(workoutDate);
-      WorkoutData.setWater(workoutDate, Math.max(0, current - WATER_STEP));
-      updateModalWater();
-      renderWaterTracker();
-      renderRecentWorkouts();
-    });
 
     document.getElementById('modal-close-btn').addEventListener('click', function () {
       modal.remove();
@@ -266,7 +249,10 @@
       item.addEventListener('click', function () {
         var idx = Number(item.getAttribute('data-workout-idx'));
         var w = workouts[idx];
-        if (w) showWorkoutModal(w);
+        if (w) {
+          showWorkoutModal(w);
+          renderWaterForDate(w.date);
+        }
       });
     });
   }
@@ -275,20 +261,19 @@
     if (typeof WorkoutData === 'undefined') {
       document.addEventListener('DOMContentLoaded', function () {
         renderStats();
-        renderWaterTracker();
         renderRecentWorkouts();
       });
       return;
     }
     renderStats();
-    renderWaterTracker();
     renderRecentWorkouts();
   }
 
   window.Dashboard = {
     init: init,
     renderStats: renderStats,
-    renderWaterTracker: renderWaterTracker,
+    renderWaterForDate: renderWaterForDate,
+    hideWaterWidget: hideWaterWidget,
     renderRecentWorkouts: renderRecentWorkouts
   };
 })();
